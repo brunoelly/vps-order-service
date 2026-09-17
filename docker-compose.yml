@@ -20,7 +20,7 @@ services:
 
   app:
     build:
-      context: ./vps
+      context: ./vps-order-service
       dockerfile: Dockerfile
     ports:
       - "8080:8080"
