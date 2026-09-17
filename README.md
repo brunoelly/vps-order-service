@@ -22,13 +22,13 @@ docker compose up --build
 
 | | |
 |---|---|
-| API | http://localhost:8080 |
-| Health | http://localhost:8080/actuator/health |
-| Swagger UI | http://localhost:8080/swagger-ui.html |
-| OpenAPI | http://localhost:8080/v3/api-docs |
+| API | http://localhost:8081 |
+| Health | http://localhost:8081/actuator/health |
+| Swagger UI | http://localhost:8081/swagger-ui.html (redirects to `/swagger-ui/index.html`) |
+| OpenAPI | http://localhost:8081/v3/api-docs |
 | Postgres (host) | `localhost:5433` — user/password/db `orders` |
 
-The app reaches Postgres as `postgres:5432` on the Compose network. Host **5433** avoids clashing with another local Postgres on 5432.
+The app reaches Postgres as `postgres:5432` on the Compose network. Host **5433** avoids clashing with another local Postgres on 5432. Host **8081** avoids clashing with another Java process on 8080. Inside the container the API still listens on 8080.
 
 ## Tests
 

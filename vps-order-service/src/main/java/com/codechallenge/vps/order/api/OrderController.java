@@ -43,9 +43,9 @@ public class OrderController {
 	@Operation(summary = "Create order")
 	@Parameter(name = "Idempotency-Key", in = ParameterIn.HEADER, required = true)
 	@ApiResponse(responseCode = "201", description = "Created")
-	@ApiResponse(responseCode = "400", description = "Invalid body or missing key")
+	@ApiResponse(responseCode = "400", description = "Missing Idempotency-Key or malformed JSON")
 	@ApiResponse(responseCode = "409", description = "Idempotency conflict")
-	@ApiResponse(responseCode = "422", description = "Insufficient credit")
+	@ApiResponse(responseCode = "422", description = "Validation failed or insufficient credit")
 	public ResponseEntity<OrderResponse> create(
 			@RequestHeader("Idempotency-Key") String idempotencyKey,
 			@Valid @RequestBody CreateOrderRequest request) {

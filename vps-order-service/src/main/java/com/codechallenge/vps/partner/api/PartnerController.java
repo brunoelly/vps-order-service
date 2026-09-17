@@ -34,7 +34,7 @@ public class PartnerController {
 	@PostMapping
 	@Operation(summary = "Create partner")
 	@ApiResponse(responseCode = "201", description = "Created")
-	@ApiResponse(responseCode = "400", description = "Invalid body")
+	@ApiResponse(responseCode = "422", description = "Validation failed")
 	public ResponseEntity<PartnerResponse> create(@Valid @RequestBody CreatePartnerRequest request) {
 		PartnerResponse body = PartnerResponse.from(partners.create(request.name(), request.creditLimit()));
 		URI location = ServletUriComponentsBuilder.fromCurrentRequest()
@@ -55,8 +55,8 @@ public class PartnerController {
 	@PatchMapping("/{id}/credit-limit")
 	@Operation(summary = "Change credit limit")
 	@ApiResponse(responseCode = "200", description = "OK")
-	@ApiResponse(responseCode = "400", description = "Invalid body")
 	@ApiResponse(responseCode = "404", description = "Not found")
+	@ApiResponse(responseCode = "422", description = "Validation failed or limit below reserved")
 	public PartnerResponse changeCreditLimit(
 			@PathVariable UUID id,
 			@Valid @RequestBody ChangeCreditLimitRequest request) {
