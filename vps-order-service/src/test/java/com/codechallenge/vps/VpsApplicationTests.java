@@ -6,6 +6,7 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 import com.codechallenge.vps.order.infra.OrderRepository;
+import com.codechallenge.vps.outbox.OutboxWriter;
 import com.codechallenge.vps.partner.infra.PartnerRepository;
 
 @SpringBootTest
@@ -17,6 +18,9 @@ class VpsApplicationTests {
 
 	@MockitoBean
 	OrderRepository orders;
+
+	@MockitoBean
+	OutboxWriter outbox;
 
 	@Test
 	void contextLoads() {

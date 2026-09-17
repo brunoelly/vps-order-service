@@ -54,6 +54,8 @@ ENVIADO          -> ENTREGUE
 
 `OrderService.place` locks the partner row (`SELECT … FOR UPDATE`), reserves credit, then inserts the order in one transaction. A repeated `Idempotency-Key` with the same lines returns the original order; a different payload is rejected. `changeStatus` only allows legal moves (approve does not debit again). Cancel releases the hold. There is no HTTP for this yet.
 
+Create, status change, and cancel write a row to `outbox` in the same transaction. A poller publishes those rows through Spring’s `ApplicationEventPublisher` and a log listener; there is no Kafka or Rabbit. An identical `Idempotency-Key` replay does not write a second event.
+
 Schema is Flyway (`partners`, `orders`, `order_items`, `outbox`). Hibernate only validates it.
 
 ## Why PostgreSQL

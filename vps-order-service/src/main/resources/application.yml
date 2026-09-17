@@ -34,3 +34,8 @@ management:
 
 server:
   shutdown: graceful
+
+outbox:
+  poll:
+    enabled: true
+    interval-ms: 2000

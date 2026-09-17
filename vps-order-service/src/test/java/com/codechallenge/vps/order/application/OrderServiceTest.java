@@ -4,8 +4,10 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -23,10 +25,13 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import com.codechallenge.vps.order.domain.IdempotencyConflictException;
 import com.codechallenge.vps.order.domain.IllegalOrderTransitionException;
 import com.codechallenge.vps.order.domain.Order;
+import com.codechallenge.vps.order.domain.OrderCreatedEvent;
 import com.codechallenge.vps.order.domain.OrderItem;
 import com.codechallenge.vps.order.domain.OrderNotFoundException;
 import com.codechallenge.vps.order.domain.OrderStatus;
+import com.codechallenge.vps.order.domain.OrderStatusChangedEvent;
 import com.codechallenge.vps.order.infra.OrderRepository;
+import com.codechallenge.vps.outbox.OutboxWriter;
 import com.codechallenge.vps.partner.domain.InsufficientCreditException;
 import com.codechallenge.vps.partner.domain.Partner;
 import com.codechallenge.vps.partner.domain.PartnerNotFoundException;
@@ -41,11 +46,14 @@ class OrderServiceTest {
 	@Mock
 	OrderRepository orders;
 
+	@Mock
+	OutboxWriter outbox;
+
 	OrderService service;
 
 	@BeforeEach
 	void setUp() {
-		service = new OrderService(partners, orders);
+		service = new OrderService(partners, orders, outbox);
 		lenient().when(orders.save(any(Order.class))).thenAnswer(inv -> inv.getArgument(0));
 		lenient().when(partners.save(any(Partner.class))).thenAnswer(inv -> inv.getArgument(0));
 	}
@@ -62,6 +70,7 @@ class OrderServiceTest {
 		assertEquals(new BigDecimal("20.00"), order.getTotal());
 		assertEquals(new BigDecimal("80.00"), partner.getAvailableCredit());
 		verify(orders).save(order);
+		verify(outbox).append(eq("Order"), eq(order.getId()), eq("OrderCreated"), any(OrderCreatedEvent.class));
 	}
 
 	@Test
@@ -72,6 +81,7 @@ class OrderServiceTest {
 		assertThrows(PartnerNotFoundException.class,
 				() -> service.place(partnerId, "k1", lines("1.00", 1)));
 		verify(orders, never()).save(any());
+		verify(outbox, never()).append(any(), any(), any(), any());
 	}
 
 	@Test
@@ -83,6 +93,7 @@ class OrderServiceTest {
 		assertThrows(IllegalArgumentException.class,
 				() -> service.place(partner.getId(), "k1", List.of()));
 		verify(orders, never()).save(any());
+		verify(outbox, never()).append(any(), any(), any(), any());
 	}
 
 	@Test
@@ -95,6 +106,7 @@ class OrderServiceTest {
 				() -> service.place(partner.getId(), "k1", lines("10.01", 1)));
 		assertEquals(new BigDecimal("10.00"), partner.getAvailableCredit());
 		verify(orders, never()).save(any());
+		verify(outbox, never()).append(any(), any(), any(), any());
 	}
 
 	@Test
@@ -109,6 +121,7 @@ class OrderServiceTest {
 		assertSame(first, again);
 		assertEquals(new BigDecimal("100.00"), partner.getAvailableCredit());
 		verify(orders, never()).save(any());
+		verify(outbox, never()).append(any(), any(), any(), any());
 	}
 
 	@Test
@@ -120,6 +133,7 @@ class OrderServiceTest {
 
 		assertThrows(IdempotencyConflictException.class,
 				() -> service.place(partner.getId(), "k1", lines("9.00", 1)));
+		verify(outbox, never()).append(any(), any(), any(), any());
 	}
 
 	@Test
@@ -136,6 +150,7 @@ class OrderServiceTest {
 		assertEquals(OrderStatus.CANCELADO, cancelled.getStatus());
 		assertEquals(new BigDecimal("0.00"), cancelled.getReservedAmount());
 		assertEquals(new BigDecimal("100.00"), partner.getAvailableCredit());
+		verify(outbox).append(eq("Order"), eq(order.getId()), eq("OrderStatusChanged"), any(OrderStatusChangedEvent.class));
 	}
 
 	@Test
@@ -144,6 +159,7 @@ class OrderServiceTest {
 		when(orders.findById(id)).thenReturn(Optional.empty());
 
 		assertThrows(OrderNotFoundException.class, () -> service.cancel(id));
+		verify(outbox, never()).append(any(), any(), any(), any());
 	}
 
 	@Test
@@ -159,6 +175,7 @@ class OrderServiceTest {
 
 		assertThrows(IllegalOrderTransitionException.class, () -> service.cancel(order.getId()));
 		assertEquals(new BigDecimal("80.00"), partner.getAvailableCredit());
+		verify(outbox, never()).append(any(), any(), any(), any());
 	}
 
 	@Test
@@ -177,6 +194,7 @@ class OrderServiceTest {
 		assertEquals(new BigDecimal("20.00"), delivered.getReservedAmount());
 		assertEquals(new BigDecimal("80.00"), partner.getAvailableCredit());
 		verify(partners, never()).findByIdForUpdate(any());
+		verify(outbox, times(4)).append(eq("Order"), eq(order.getId()), eq("OrderStatusChanged"), any());
 	}
 
 	@Test
@@ -186,6 +204,7 @@ class OrderServiceTest {
 
 		assertThrows(IllegalOrderTransitionException.class,
 				() -> service.changeStatus(order.getId(), OrderStatus.ENVIADO));
+		verify(outbox, never()).append(any(), any(), any(), any());
 	}
 
 	@Test
@@ -195,6 +214,7 @@ class OrderServiceTest {
 
 		assertThrows(OrderNotFoundException.class,
 				() -> service.changeStatus(id, OrderStatus.APROVADO));
+		verify(outbox, never()).append(any(), any(), any(), any());
 	}
 
 	@Test
@@ -210,11 +230,13 @@ class OrderServiceTest {
 
 		assertEquals(OrderStatus.CANCELADO, cancelled.getStatus());
 		assertEquals(new BigDecimal("100.00"), partner.getAvailableCredit());
+		verify(outbox).append(eq("Order"), eq(order.getId()), eq("OrderStatusChanged"), any(OrderStatusChangedEvent.class));
 	}
 
 	@Test
 	void changeStatusRequiresTarget() {
 		assertThrows(IllegalArgumentException.class, () -> service.changeStatus(UUID.randomUUID(), null));
+		verify(outbox, never()).append(any(), any(), any(), any());
 	}
 
 	@Test
@@ -228,6 +250,7 @@ class OrderServiceTest {
 
 		assertThrows(IllegalOrderTransitionException.class,
 				() -> service.changeStatus(order.getId(), OrderStatus.APROVADO));
+		verify(outbox, never()).append(any(), any(), any(), any());
 	}
 
 	private static List<OrderItem> lines(String price, int qty) {

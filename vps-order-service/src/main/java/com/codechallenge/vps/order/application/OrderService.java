@@ -9,10 +9,13 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.codechallenge.vps.order.domain.IdempotencyConflictException;
 import com.codechallenge.vps.order.domain.Order;
+import com.codechallenge.vps.order.domain.OrderCreatedEvent;
 import com.codechallenge.vps.order.domain.OrderItem;
 import com.codechallenge.vps.order.domain.OrderNotFoundException;
 import com.codechallenge.vps.order.domain.OrderStatus;
+import com.codechallenge.vps.order.domain.OrderStatusChangedEvent;
 import com.codechallenge.vps.order.infra.OrderRepository;
+import com.codechallenge.vps.outbox.OutboxWriter;
 import com.codechallenge.vps.partner.domain.Partner;
 import com.codechallenge.vps.partner.domain.PartnerNotFoundException;
 import com.codechallenge.vps.partner.infra.PartnerRepository;
@@ -22,10 +25,12 @@ public class OrderService {
 
 	private final PartnerRepository partners;
 	private final OrderRepository orders;
+	private final OutboxWriter outbox;
 
-	public OrderService(PartnerRepository partners, OrderRepository orders) {
+	public OrderService(PartnerRepository partners, OrderRepository orders, OutboxWriter outbox) {
 		this.partners = partners;
 		this.orders = orders;
+		this.outbox = outbox;
 	}
 
 	@Transactional
@@ -45,7 +50,10 @@ public class OrderService {
 		Order order = Order.create(partnerId, idempotencyKey, items);
 		partner.reserve(order.getTotal());
 		partners.save(partner);
-		return orders.save(order);
+		Order saved = orders.save(order);
+		outbox.append("Order", saved.getId(), "OrderCreated",
+				new OrderCreatedEvent(saved.getId(), saved.getPartnerId(), saved.getCreatedAt()));
+		return saved;
 	}
 
 	@Transactional
@@ -57,8 +65,12 @@ public class OrderService {
 			return cancel(orderId);
 		}
 		Order order = orders.findByIdForUpdate(orderId).orElseThrow(() -> new OrderNotFoundException(orderId));
+		OrderStatus from = order.getStatus();
 		order.transitionTo(target);
-		return orders.save(order);
+		Order saved = orders.save(order);
+		outbox.append("Order", saved.getId(), "OrderStatusChanged",
+				new OrderStatusChangedEvent(saved.getId(), saved.getPartnerId(), from, saved.getStatus(), saved.getUpdatedAt()));
+		return saved;
 	}
 
 	@Transactional
@@ -68,11 +80,15 @@ public class OrderService {
 				.orElseThrow(() -> new PartnerNotFoundException(current.getPartnerId()));
 		Order order = orders.findByIdForUpdate(orderId).orElseThrow(() -> new OrderNotFoundException(orderId));
 
+		OrderStatus from = order.getStatus();
 		BigDecimal held = order.cancel();
 		if (held.compareTo(BigDecimal.ZERO) > 0) {
 			partner.release(held);
 		}
 		partners.save(partner);
-		return orders.save(order);
+		Order saved = orders.save(order);
+		outbox.append("Order", saved.getId(), "OrderStatusChanged",
+				new OrderStatusChangedEvent(saved.getId(), saved.getPartnerId(), from, saved.getStatus(), saved.getUpdatedAt()));
+		return saved;
 	}
 }
