@@ -2,7 +2,7 @@ spring:
   application:
     name: vps-order-service
   profiles:
-    default: local
+    default: dev
   jpa:
     open-in-view: false
     hibernate:

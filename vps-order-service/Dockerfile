@@ -13,7 +13,7 @@ WORKDIR /app
 
 RUN useradd --system --uid 10001 --no-create-home app
 COPY --from=build --chown=app:app /workspace/app.jar app.jar
-ENV SPRING_PROFILES_ACTIVE=docker
+ENV SPRING_PROFILES_ACTIVE=prod
 USER app
 
 EXPOSE 8080

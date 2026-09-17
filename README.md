@@ -1,13 +1,12 @@
 # vps-order-service
 
-REST API for B2B orders. A partner has a credit limit; creating an order holds that amount so two concurrent creates cannot both spend the same remaining credit. Orders move through a fixed status list. There is no UI and no login.
+REST API for B2B orders. A partner has a credit limit; creating an order holds that amount so two concurrent creates cannot both spend the same remaining credit. 
+Orders move through a fixed status list. There is no UI and no login.
 
 ## Prerequisites
 
 - **Docker** (Engine is enough) — this is the intended way to run it
 - **JDK 17** and the Maven wrapper — only if you run the jar on the host
-
-On this machine Docker lives in Ubuntu (WSL). Git Bash has no `docker` binary.
 
 ## Run with Docker
 
@@ -35,20 +34,19 @@ docker compose up --build
 | OpenAPI | http://localhost:8081/v3/api-docs |
 | Postgres (host) | `localhost:5433` — user/password/db `orders` |
 
-The app reaches Postgres as `postgres:5432` on the Compose network. Host **5433** avoids clashing with another local Postgres on 5432. Host **8081** avoids clashing with another Java process on 8080. Inside the container the API still listens on 8080.
-
+The app reaches Postgres as `postgres:5433` on the Compose network.
 Wait until health returns `{"status":"UP"}` before calling the API.
 
 ## Run on the host
 
-Start Postgres yourself (or keep the Compose `postgres` service and stop `app`). Profile `local` is the default:
+Start Postgres yourself (or keep the Compose `postgres` service and stop `app`). Profile `dev` is the default:
 
 ```bash
 cd vps-order-service
 ./mvnw spring-boot:run
 ```
 
-`application-local.yml` points at `localhost:5432`. If you are using the Compose database, it is on **5433**:
+`application-dev.yml` points at `localhost:5432`. If you are using the Compose database, it is on **5433**:
 
 ```bash
 SPRING_DATASOURCE_URL=jdbc:postgresql://localhost:5433/orders \
@@ -57,7 +55,7 @@ SPRING_DATASOURCE_PASSWORD=orders \
 ./mvnw spring-boot:run
 ```
 
-The process then listens on **8080**. Point the curls below at that port, or pass `--server.port=8081`.
+The process then listens on **8080**. Point the curls below at that port, or pass `--server.port=8081`. Compose sets `prod` (`postgres` as the DB host). `test` / `it` are for Surefire only.
 
 ## Status
 
