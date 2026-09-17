@@ -27,6 +27,15 @@ class OrderTest {
 	void rejectsEmptyItems() {
 		assertThrows(IllegalArgumentException.class,
 				() -> Order.create(UUID.randomUUID(), "key-1", List.of()));
+		assertThrows(IllegalArgumentException.class,
+				() -> Order.create(UUID.randomUUID(), "key-1", null));
+	}
+
+	@Test
+	void rejectsMissingPartnerOrKey() {
+		List<OrderItem> items = List.of(new OrderItem("SKU-1", "Widget", 1, new BigDecimal("1.00")));
+		assertThrows(IllegalArgumentException.class, () -> Order.create(null, "key-1", items));
+		assertThrows(IllegalArgumentException.class, () -> Order.create(UUID.randomUUID(), "  ", items));
 	}
 
 	@Test
@@ -54,6 +63,15 @@ class OrderTest {
 	}
 
 	@Test
+	void transitionToCanceladoUsesCancel() {
+		Order order = sample("10.00", 1, "5.00", 1);
+		order.transitionTo(OrderStatus.APROVADO);
+		order.transitionTo(OrderStatus.CANCELADO);
+		assertEquals(OrderStatus.CANCELADO, order.getStatus());
+		assertEquals(new BigDecimal("0.00"), order.getReservedAmount());
+	}
+
+	@Test
 	void cannotSkipFromPendenteToEnviado() {
 		Order order = sample("1.00", 1, "1.00", 1);
 
@@ -74,6 +92,26 @@ class OrderTest {
 	void itemRejectsNonPositiveQuantity() {
 		assertThrows(IllegalArgumentException.class,
 				() -> new OrderItem("SKU-1", "Bolt", 0, new BigDecimal("1.00")));
+	}
+
+	@Test
+	void itemRejectsBlankSkuAndNegativePrice() {
+		assertThrows(IllegalArgumentException.class,
+				() -> new OrderItem("  ", "Bolt", 1, new BigDecimal("1.00")));
+		assertThrows(IllegalArgumentException.class,
+				() -> new OrderItem("SKU-1", "Bolt", 1, new BigDecimal("-0.01")));
+	}
+
+	@Test
+	void lineTotalScalesToTwoPlaces() {
+		OrderItem item = new OrderItem("SKU-1", "Bolt", 3, new BigDecimal("1.255"));
+		assertEquals(new BigDecimal("3.78"), item.lineTotal());
+	}
+
+	@Test
+	void hasSameLinesRejectsNull() {
+		Order order = sample("10.00", 2, "3.50", 1);
+		assertFalse(order.hasSameLines(null));
 	}
 
 	@Test

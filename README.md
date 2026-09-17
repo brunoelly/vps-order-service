@@ -37,7 +37,7 @@ cd vps-order-service
 ./mvnw test
 ```
 
-Domain tests always run. `OrderPersistenceTest` needs Docker (Testcontainers) and is skipped if the daemon is not on the PATH (typical from Git Bash on this machine). From Ubuntu WSL with Docker, it runs.
+Domain tests always run (`OrderStatus` matrix, totals, credit reserve/release, services). `./mvnw verify` also fails the build if JaCoCo line coverage on `order`/`partner` `domain` + `application` is under 80%. `OrderPersistenceTest` needs Docker (Testcontainers) and is skipped if the daemon is not on the PATH (typical from Git Bash on this machine). From Ubuntu WSL with Docker, it runs.
 
 ## Domain
 

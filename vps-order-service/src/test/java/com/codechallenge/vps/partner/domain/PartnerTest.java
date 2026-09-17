@@ -37,6 +37,25 @@ class PartnerTest {
 	}
 
 	@Test
+	void reserveExactAvailableLeavesZero() {
+		Partner partner = Partner.create("Acme", new BigDecimal("25.00"));
+		partner.reserve(new BigDecimal("25.00"));
+		assertEquals(new BigDecimal("0.00"), partner.getAvailableCredit());
+	}
+
+	@Test
+	void reserveRejectsZeroAndNull() {
+		Partner partner = Partner.create("Acme", new BigDecimal("10.00"));
+		assertThrows(IllegalArgumentException.class, () -> partner.reserve(BigDecimal.ZERO));
+		assertThrows(IllegalArgumentException.class, () -> partner.reserve(null));
+	}
+
+	@Test
+	void createRejectsBlankName() {
+		assertThrows(IllegalArgumentException.class, () -> Partner.create("  ", new BigDecimal("10.00")));
+	}
+
+	@Test
 	void releaseRestoresReservedAmount() {
 		Partner partner = Partner.create("Acme", new BigDecimal("100.00"));
 		partner.reserve(new BigDecimal("30.00"));
@@ -44,6 +63,12 @@ class PartnerTest {
 		partner.release(new BigDecimal("30.00"));
 
 		assertEquals(new BigDecimal("100.00"), partner.getAvailableCredit());
+	}
+
+	@Test
+	void releaseRejectsZero() {
+		Partner partner = Partner.create("Acme", new BigDecimal("10.00"));
+		assertThrows(IllegalArgumentException.class, () -> partner.release(BigDecimal.ZERO));
 	}
 
 	@Test

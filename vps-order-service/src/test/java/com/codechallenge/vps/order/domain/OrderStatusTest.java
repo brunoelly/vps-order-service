@@ -19,6 +19,7 @@ class OrderStatusTest {
 			"APROVADO, EM_PROCESSAMENTO, true",
 			"APROVADO, CANCELADO, true",
 			"APROVADO, PENDENTE, false",
+			"APROVADO, ENTREGUE, false",
 			"APROVADO, ENVIADO, false",
 			"EM_PROCESSAMENTO, ENVIADO, true",
 			"EM_PROCESSAMENTO, CANCELADO, false",
