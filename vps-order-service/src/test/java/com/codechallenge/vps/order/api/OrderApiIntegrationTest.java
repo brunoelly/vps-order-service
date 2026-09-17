@@ -63,7 +63,7 @@ class OrderApiIntegrationTest {
 						.contentType(APPLICATION_JSON)
 						.content(orderJson(partnerId, "10.00")))
 				.andExpect(status().isCreated())
-				.andExpect(jsonPath("$.status").value("PENDENTE"))
+				.andExpect(jsonPath("$.status").value("PENDING"))
 				.andExpect(jsonPath("$.total").value(10.00))
 				.andReturn();
 		String orderId = JsonPath.read(created.getResponse().getContentAsString(), "$.id");
@@ -72,22 +72,22 @@ class OrderApiIntegrationTest {
 				.andExpect(status().isOk())
 				.andExpect(jsonPath("$.partnerId").value(partnerId));
 
-		mvc.perform(get("/api/v1/orders").param("partnerId", partnerId).param("status", "PENDENTE"))
+		mvc.perform(get("/api/v1/orders").param("partnerId", partnerId).param("status", "PENDING"))
 				.andExpect(status().isOk())
 				.andExpect(jsonPath("$.totalElements").value(1));
 
 		mvc.perform(patch("/api/v1/orders/{id}/status", orderId)
 						.contentType(APPLICATION_JSON)
-						.content("{\"status\":\"APROVADO\"}"))
+						.content("{\"status\":\"APPROVED\"}"))
 				.andExpect(status().isOk())
-				.andExpect(jsonPath("$.status").value("APROVADO"));
+				.andExpect(jsonPath("$.status").value("APPROVED"));
 
 		mvc.perform(get("/api/v1/partners/{id}", partnerId))
 				.andExpect(jsonPath("$.availableCredit").value(190.00));
 
 		mvc.perform(post("/api/v1/orders/{id}/cancel", orderId))
 				.andExpect(status().isOk())
-				.andExpect(jsonPath("$.status").value("CANCELADO"));
+				.andExpect(jsonPath("$.status").value("CANCELLED"));
 
 		mvc.perform(get("/api/v1/partners/{id}", partnerId))
 				.andExpect(jsonPath("$.availableCredit").value(200.00));
@@ -126,7 +126,7 @@ class OrderApiIntegrationTest {
 		String orderId = createOrder(partnerId, "jump-1", "10.00");
 		mvc.perform(patch("/api/v1/orders/{id}/status", orderId)
 						.contentType(APPLICATION_JSON)
-						.content("{\"status\":\"ENVIADO\"}"))
+						.content("{\"status\":\"SHIPPED\"}"))
 				.andExpect(status().isConflict())
 				.andExpect(jsonPath("$.status").value(409));
 	}
@@ -212,7 +212,7 @@ class OrderApiIntegrationTest {
 		assertTrue(partner.getAvailableCredit().compareTo(BigDecimal.ZERO) >= 0);
 		BigDecimal held = orders.findAll().stream()
 				.filter(o -> o.getPartnerId().equals(partner.getId()))
-				.filter(o -> o.getStatus() != OrderStatus.CANCELADO)
+				.filter(o -> o.getStatus() != OrderStatus.CANCELLED)
 				.map(Order::getReservedAmount)
 				.reduce(BigDecimal.ZERO, BigDecimal::add);
 		assertEquals(0, partner.getCreditLimit().subtract(partner.getAvailableCredit()).compareTo(held));

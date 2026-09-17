@@ -60,13 +60,13 @@ The process then listens on **8080**. Point the curls below at that port, or pas
 ## Status
 
 ```
-PENDENTE         -> APROVADO | CANCELADO
-APROVADO         -> EM_PROCESSAMENTO | CANCELADO
-EM_PROCESSAMENTO -> ENVIADO
-ENVIADO          -> ENTREGUE
+PENDING    -> APPROVED | CANCELLED
+APPROVED   -> PROCESSING | CANCELLED
+PROCESSING -> SHIPPED
+SHIPPED    -> DELIVERED
 ```
 
-`ENTREGUE` and `CANCELADO` are final. Create checks partner credit and holds the total. Approve does not debit again. Cancel from `PENDENTE` or `APROVADO` releases the hold. Later statuses cannot be cancelled.
+`DELIVERED` and `CANCELLED` are final. Create checks partner credit and holds the total. Approve does not debit again. Cancel from `PENDING` or `APPROVED` releases the hold. Later statuses cannot be cancelled.
 
 `POST /api/v1/orders` requires `Idempotency-Key`. The same key and the same lines return the original order; a different payload on that key is 409.
 
@@ -114,7 +114,7 @@ curl -sS http://localhost:8081/api/v1/orders/$ORDER_ID
 Search (`page` defaults to 0, `size` to 20, max 100; newest `createdAt` first):
 
 ```bash
-curl -sS "http://localhost:8081/api/v1/orders?partnerId=$PARTNER_ID&status=PENDENTE&page=0&size=20"
+curl -sS "http://localhost:8081/api/v1/orders?partnerId=$PARTNER_ID&status=PENDING&page=0&size=20"
 ```
 
 Approve, then move along the machine:
@@ -122,16 +122,16 @@ Approve, then move along the machine:
 ```bash
 curl -sS -X PATCH http://localhost:8081/api/v1/orders/$ORDER_ID/status \
   -H 'Content-Type: application/json' \
-  -d '{"status":"APROVADO"}'
+  -d '{"status":"APPROVED"}'
 ```
 
-Cancel (from `PENDENTE` or `APROVADO`):
+Cancel (from `PENDING` or `APPROVED`):
 
 ```bash
 curl -sS -X POST http://localhost:8081/api/v1/orders/$ORDER_ID/cancel
 ```
 
-Use a second order if you want to walk the rest of the machine after approve (`EM_PROCESSAMENTO` → `ENVIADO` → `ENTREGUE`). Same `PATCH` body, different `status`.
+Use a second order if you want to walk the rest of the machine after approve (`PROCESSING` → `SHIPPED` → `DELIVERED`). Same `PATCH` body, different `status`.
 
 Replay the create with the same `Idempotency-Key` and the same lines: you get the same order id and credit is not reserved twice. Change the lines but keep the key: 409.
 
@@ -174,12 +174,12 @@ curl -sS -X POST http://localhost:8081/api/v1/orders \
 
 Lower the credit limit below what is already reserved → 422.
 
-Illegal jump (`PENDENTE` → `ENVIADO`) or cancel after `EM_PROCESSAMENTO` → 409:
+Illegal jump (`PENDING` → `SHIPPED`) or cancel after `PROCESSING` → 409:
 
 ```bash
 curl -sS -X PATCH http://localhost:8081/api/v1/orders/$ORDER_ID/status \
   -H 'Content-Type: application/json' \
-  -d '{"status":"ENVIADO"}'
+  -d '{"status":"SHIPPED"}'
 ```
 
 Same `Idempotency-Key`, different lines → 409:

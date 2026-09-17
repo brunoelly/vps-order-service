@@ -5,12 +5,12 @@ import java.util.Set;
 
 public enum OrderStatus {
 
-	PENDENTE,
-	APROVADO,
-	EM_PROCESSAMENTO,
-	ENVIADO,
-	ENTREGUE,
-	CANCELADO;
+	PENDING,
+	APPROVED,
+	PROCESSING,
+	SHIPPED,
+	DELIVERED,
+	CANCELLED;
 
 	public boolean canTransitionTo(OrderStatus target) {
 		if (target == null || target == this) {
@@ -21,11 +21,11 @@ public enum OrderStatus {
 
 	private Set<OrderStatus> allowedTargets() {
 		return switch (this) {
-			case PENDENTE -> EnumSet.of(APROVADO, CANCELADO);
-			case APROVADO -> EnumSet.of(EM_PROCESSAMENTO, CANCELADO);
-			case EM_PROCESSAMENTO -> EnumSet.of(ENVIADO);
-			case ENVIADO -> EnumSet.of(ENTREGUE);
-			case ENTREGUE, CANCELADO -> EnumSet.noneOf(OrderStatus.class);
+			case PENDING -> EnumSet.of(APPROVED, CANCELLED);
+			case APPROVED -> EnumSet.of(PROCESSING, CANCELLED);
+			case PROCESSING -> EnumSet.of(SHIPPED);
+			case SHIPPED -> EnumSet.of(DELIVERED);
+			case DELIVERED, CANCELLED -> EnumSet.noneOf(OrderStatus.class);
 		};
 	}
 }

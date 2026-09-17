@@ -85,7 +85,7 @@ public class OrderService {
 		if (target == null) {
 			throw new IllegalArgumentException("status is required");
 		}
-		if (target == OrderStatus.CANCELADO) {
+		if (target == OrderStatus.CANCELLED) {
 			return cancel(orderId);
 		}
 		Order order = orders.findByIdForUpdate(orderId).orElseThrow(() -> new OrderNotFoundException(orderId));

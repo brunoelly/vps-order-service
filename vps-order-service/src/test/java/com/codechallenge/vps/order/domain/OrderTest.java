@@ -17,7 +17,7 @@ class OrderTest {
 	void createComputesTotalAndReservesIt() {
 		Order order = sample("10.00", 2, "3.50", 1);
 
-		assertEquals(OrderStatus.PENDENTE, order.getStatus());
+		assertEquals(OrderStatus.PENDING, order.getStatus());
 		assertEquals(new BigDecimal("23.50"), order.getTotal());
 		assertEquals(new BigDecimal("23.50"), order.getReservedAmount());
 		assertEquals(2, order.getItems().size());
@@ -42,48 +42,48 @@ class OrderTest {
 	void followsHappyPathUntilDelivered() {
 		Order order = sample("10.00", 1, "5.00", 1);
 
-		order.transitionTo(OrderStatus.APROVADO);
-		order.transitionTo(OrderStatus.EM_PROCESSAMENTO);
-		order.transitionTo(OrderStatus.ENVIADO);
-		order.transitionTo(OrderStatus.ENTREGUE);
+		order.transitionTo(OrderStatus.APPROVED);
+		order.transitionTo(OrderStatus.PROCESSING);
+		order.transitionTo(OrderStatus.SHIPPED);
+		order.transitionTo(OrderStatus.DELIVERED);
 
-		assertEquals(OrderStatus.ENTREGUE, order.getStatus());
+		assertEquals(OrderStatus.DELIVERED, order.getStatus());
 		assertEquals(new BigDecimal("15.00"), order.getReservedAmount());
 	}
 
 	@Test
-	void cancelFromPendenteClearsReservation() {
+	void cancelFromPendingClearsReservation() {
 		Order order = sample("20.00", 1, "5.00", 2);
 
 		BigDecimal released = order.cancel();
 
 		assertEquals(new BigDecimal("30.00"), released);
 		assertEquals(new BigDecimal("0.00"), order.getReservedAmount());
-		assertEquals(OrderStatus.CANCELADO, order.getStatus());
+		assertEquals(OrderStatus.CANCELLED, order.getStatus());
 	}
 
 	@Test
-	void transitionToCanceladoUsesCancel() {
+	void transitionToCancelledUsesCancel() {
 		Order order = sample("10.00", 1, "5.00", 1);
-		order.transitionTo(OrderStatus.APROVADO);
-		order.transitionTo(OrderStatus.CANCELADO);
-		assertEquals(OrderStatus.CANCELADO, order.getStatus());
+		order.transitionTo(OrderStatus.APPROVED);
+		order.transitionTo(OrderStatus.CANCELLED);
+		assertEquals(OrderStatus.CANCELLED, order.getStatus());
 		assertEquals(new BigDecimal("0.00"), order.getReservedAmount());
 	}
 
 	@Test
-	void cannotSkipFromPendenteToEnviado() {
+	void cannotSkipFromPendingToShipped() {
 		Order order = sample("1.00", 1, "1.00", 1);
 
 		assertThrows(IllegalOrderTransitionException.class,
-				() -> order.transitionTo(OrderStatus.ENVIADO));
+				() -> order.transitionTo(OrderStatus.SHIPPED));
 	}
 
 	@Test
 	void cannotCancelAfterProcessingStarted() {
 		Order order = sample("1.00", 1, "1.00", 1);
-		order.transitionTo(OrderStatus.APROVADO);
-		order.transitionTo(OrderStatus.EM_PROCESSAMENTO);
+		order.transitionTo(OrderStatus.APPROVED);
+		order.transitionTo(OrderStatus.PROCESSING);
 
 		assertThrows(IllegalOrderTransitionException.class, order::cancel);
 	}

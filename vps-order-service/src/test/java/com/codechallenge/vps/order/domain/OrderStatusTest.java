@@ -11,25 +11,25 @@ class OrderStatusTest {
 
 	@ParameterizedTest
 	@CsvSource({
-			"PENDENTE, APROVADO, true",
-			"PENDENTE, CANCELADO, true",
-			"PENDENTE, EM_PROCESSAMENTO, false",
-			"PENDENTE, ENVIADO, false",
-			"PENDENTE, ENTREGUE, false",
-			"APROVADO, EM_PROCESSAMENTO, true",
-			"APROVADO, CANCELADO, true",
-			"APROVADO, PENDENTE, false",
-			"APROVADO, ENTREGUE, false",
-			"APROVADO, ENVIADO, false",
-			"EM_PROCESSAMENTO, ENVIADO, true",
-			"EM_PROCESSAMENTO, CANCELADO, false",
-			"EM_PROCESSAMENTO, APROVADO, false",
-			"ENVIADO, ENTREGUE, true",
-			"ENVIADO, CANCELADO, false",
-			"ENTREGUE, CANCELADO, false",
-			"ENTREGUE, ENVIADO, false",
-			"CANCELADO, PENDENTE, false",
-			"CANCELADO, ENTREGUE, false"
+			"PENDING, APPROVED, true",
+			"PENDING, CANCELLED, true",
+			"PENDING, PROCESSING, false",
+			"PENDING, SHIPPED, false",
+			"PENDING, DELIVERED, false",
+			"APPROVED, PROCESSING, true",
+			"APPROVED, CANCELLED, true",
+			"APPROVED, PENDING, false",
+			"APPROVED, DELIVERED, false",
+			"APPROVED, SHIPPED, false",
+			"PROCESSING, SHIPPED, true",
+			"PROCESSING, CANCELLED, false",
+			"PROCESSING, APPROVED, false",
+			"SHIPPED, DELIVERED, true",
+			"SHIPPED, CANCELLED, false",
+			"DELIVERED, CANCELLED, false",
+			"DELIVERED, SHIPPED, false",
+			"CANCELLED, PENDING, false",
+			"CANCELLED, DELIVERED, false"
 	})
 	void transitionRules(OrderStatus from, OrderStatus to, boolean allowed) {
 		assertEquals(allowed, from.canTransitionTo(to));
@@ -37,17 +37,17 @@ class OrderStatusTest {
 
 	@Test
 	void sameStatusIsNotAllowed() {
-		assertFalse(OrderStatus.PENDENTE.canTransitionTo(OrderStatus.PENDENTE));
+		assertFalse(OrderStatus.PENDING.canTransitionTo(OrderStatus.PENDING));
 	}
 
 	@Test
 	void nullTargetIsNotAllowed() {
-		assertFalse(OrderStatus.PENDENTE.canTransitionTo(null));
+		assertFalse(OrderStatus.PENDING.canTransitionTo(null));
 	}
 
 	@Test
 	void terminalsHaveNoOutgoingTransitions() {
-		assertFalse(OrderStatus.ENTREGUE.canTransitionTo(OrderStatus.PENDENTE));
-		assertFalse(OrderStatus.CANCELADO.canTransitionTo(OrderStatus.APROVADO));
+		assertFalse(OrderStatus.DELIVERED.canTransitionTo(OrderStatus.PENDING));
+		assertFalse(OrderStatus.CANCELLED.canTransitionTo(OrderStatus.APPROVED));
 	}
 }

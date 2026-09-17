@@ -56,13 +56,13 @@ class OrderPersistenceTest {
 		Order loaded = orders.findByPartnerIdAndIdempotencyKey(partner.getId(), "idem-1").orElseThrow();
 		assertEquals(new BigDecimal("25.00"), loaded.getTotal());
 		assertEquals(1, loaded.getItems().size());
-		assertEquals(OrderStatus.PENDENTE, loaded.getStatus());
+		assertEquals(OrderStatus.PENDING, loaded.getStatus());
 
 		assertTrue(partners.findByIdForUpdate(partner.getId()).isPresent());
 		assertTrue(orders.findByIdForUpdate(order.getId()).isPresent());
 
 		Specification<Order> spec = OrderSpecs.partnerId(partner.getId())
-				.and(OrderSpecs.status(OrderStatus.PENDENTE));
+				.and(OrderSpecs.status(OrderStatus.PENDING));
 		Page<Order> page = orders.findAll(spec, PageRequest.of(0, 20));
 		assertEquals(1, page.getTotalElements());
 	}

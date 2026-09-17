@@ -72,7 +72,7 @@ class OrderServiceTest {
 
 		Order order = service.place(partner.getId(), "k1", lines("10.00", 2));
 
-		assertEquals(OrderStatus.PENDENTE, order.getStatus());
+		assertEquals(OrderStatus.PENDING, order.getStatus());
 		assertEquals(new BigDecimal("20.00"), order.getTotal());
 		assertEquals(new BigDecimal("80.00"), partner.getAvailableCredit());
 		verify(orders).save(order);
@@ -153,7 +153,7 @@ class OrderServiceTest {
 
 		Order cancelled = service.cancel(order.getId());
 
-		assertEquals(OrderStatus.CANCELADO, cancelled.getStatus());
+		assertEquals(OrderStatus.CANCELLED, cancelled.getStatus());
 		assertEquals(new BigDecimal("0.00"), cancelled.getReservedAmount());
 		assertEquals(new BigDecimal("100.00"), partner.getAvailableCredit());
 		verify(outbox).append(eq("Order"), eq(order.getId()), eq("OrderStatusChanged"), any(OrderStatusChangedEvent.class));
@@ -173,8 +173,8 @@ class OrderServiceTest {
 		Partner partner = Partner.create("Acme", new BigDecimal("100.00"));
 		partner.reserve(new BigDecimal("20.00"));
 		Order order = Order.create(partner.getId(), "k1", lines("10.00", 2));
-		order.transitionTo(OrderStatus.APROVADO);
-		order.transitionTo(OrderStatus.EM_PROCESSAMENTO);
+		order.transitionTo(OrderStatus.APPROVED);
+		order.transitionTo(OrderStatus.PROCESSING);
 		when(orders.findById(order.getId())).thenReturn(Optional.of(order));
 		when(partners.findByIdForUpdate(partner.getId())).thenReturn(Optional.of(partner));
 		when(orders.findByIdForUpdate(order.getId())).thenReturn(Optional.of(order));
@@ -191,12 +191,12 @@ class OrderServiceTest {
 		Order order = Order.create(partner.getId(), "k1", lines("10.00", 2));
 		when(orders.findByIdForUpdate(order.getId())).thenReturn(Optional.of(order));
 
-		service.changeStatus(order.getId(), OrderStatus.APROVADO);
-		service.changeStatus(order.getId(), OrderStatus.EM_PROCESSAMENTO);
-		service.changeStatus(order.getId(), OrderStatus.ENVIADO);
-		Order delivered = service.changeStatus(order.getId(), OrderStatus.ENTREGUE);
+		service.changeStatus(order.getId(), OrderStatus.APPROVED);
+		service.changeStatus(order.getId(), OrderStatus.PROCESSING);
+		service.changeStatus(order.getId(), OrderStatus.SHIPPED);
+		Order delivered = service.changeStatus(order.getId(), OrderStatus.DELIVERED);
 
-		assertEquals(OrderStatus.ENTREGUE, delivered.getStatus());
+		assertEquals(OrderStatus.DELIVERED, delivered.getStatus());
 		assertEquals(new BigDecimal("20.00"), delivered.getReservedAmount());
 		assertEquals(new BigDecimal("80.00"), partner.getAvailableCredit());
 		verify(partners, never()).findByIdForUpdate(any());
@@ -209,7 +209,7 @@ class OrderServiceTest {
 		when(orders.findByIdForUpdate(order.getId())).thenReturn(Optional.of(order));
 
 		assertThrows(IllegalOrderTransitionException.class,
-				() -> service.changeStatus(order.getId(), OrderStatus.ENVIADO));
+				() -> service.changeStatus(order.getId(), OrderStatus.SHIPPED));
 		verify(outbox, never()).append(any(), any(), any(), any());
 	}
 
@@ -219,12 +219,12 @@ class OrderServiceTest {
 		when(orders.findByIdForUpdate(id)).thenReturn(Optional.empty());
 
 		assertThrows(OrderNotFoundException.class,
-				() -> service.changeStatus(id, OrderStatus.APROVADO));
+				() -> service.changeStatus(id, OrderStatus.APPROVED));
 		verify(outbox, never()).append(any(), any(), any(), any());
 	}
 
 	@Test
-	void changeStatusToCanceladoReleasesCredit() {
+	void changeStatusToCancelledReleasesCredit() {
 		Partner partner = Partner.create("Acme", new BigDecimal("100.00"));
 		partner.reserve(new BigDecimal("20.00"));
 		Order order = Order.create(partner.getId(), "k1", lines("10.00", 2));
@@ -232,9 +232,9 @@ class OrderServiceTest {
 		when(partners.findByIdForUpdate(partner.getId())).thenReturn(Optional.of(partner));
 		when(orders.findByIdForUpdate(order.getId())).thenReturn(Optional.of(order));
 
-		Order cancelled = service.changeStatus(order.getId(), OrderStatus.CANCELADO);
+		Order cancelled = service.changeStatus(order.getId(), OrderStatus.CANCELLED);
 
-		assertEquals(OrderStatus.CANCELADO, cancelled.getStatus());
+		assertEquals(OrderStatus.CANCELLED, cancelled.getStatus());
 		assertEquals(new BigDecimal("100.00"), partner.getAvailableCredit());
 		verify(outbox).append(eq("Order"), eq(order.getId()), eq("OrderStatusChanged"), any(OrderStatusChangedEvent.class));
 	}
@@ -248,14 +248,14 @@ class OrderServiceTest {
 	@Test
 	void deliveredIsTerminal() {
 		Order order = Order.create(UUID.randomUUID(), "k1", lines("1.00", 1));
-		order.transitionTo(OrderStatus.APROVADO);
-		order.transitionTo(OrderStatus.EM_PROCESSAMENTO);
-		order.transitionTo(OrderStatus.ENVIADO);
-		order.transitionTo(OrderStatus.ENTREGUE);
+		order.transitionTo(OrderStatus.APPROVED);
+		order.transitionTo(OrderStatus.PROCESSING);
+		order.transitionTo(OrderStatus.SHIPPED);
+		order.transitionTo(OrderStatus.DELIVERED);
 		when(orders.findByIdForUpdate(order.getId())).thenReturn(Optional.of(order));
 
 		assertThrows(IllegalOrderTransitionException.class,
-				() -> service.changeStatus(order.getId(), OrderStatus.APROVADO));
+				() -> service.changeStatus(order.getId(), OrderStatus.APPROVED));
 		verify(outbox, never()).append(any(), any(), any(), any());
 	}
 
@@ -281,7 +281,7 @@ class OrderServiceTest {
 		Pageable page = PageRequest.of(0, 20);
 		when(orders.findAll(any(Specification.class), eq(page))).thenReturn(new PageImpl<>(List.of(order)));
 
-		Page<Order> result = service.search(order.getPartnerId(), OrderStatus.PENDENTE, Instant.EPOCH, Instant.now(), page);
+		Page<Order> result = service.search(order.getPartnerId(), OrderStatus.PENDING, Instant.EPOCH, Instant.now(), page);
 
 		assertEquals(1, result.getTotalElements());
 		assertSame(order, result.getContent().get(0));

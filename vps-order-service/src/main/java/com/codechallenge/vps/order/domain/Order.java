@@ -78,7 +78,7 @@ public class Order {
 		this.partnerId = partnerId;
 		this.idempotencyKey = idempotencyKey.trim();
 		this.items = new ArrayList<>(items);
-		this.status = OrderStatus.PENDENTE;
+		this.status = OrderStatus.PENDING;
 		this.createdAt = now;
 		this.updatedAt = now;
 		recalculateTotal();
@@ -94,7 +94,7 @@ public class Order {
 	}
 
 	public void transitionTo(OrderStatus target) {
-		if (target == OrderStatus.CANCELADO) {
+		if (target == OrderStatus.CANCELLED) {
 			cancel();
 			return;
 		}
@@ -106,11 +106,11 @@ public class Order {
 	}
 
 	public BigDecimal cancel() {
-		if (!status.canTransitionTo(OrderStatus.CANCELADO)) {
-			throw new IllegalOrderTransitionException(status, OrderStatus.CANCELADO);
+		if (!status.canTransitionTo(OrderStatus.CANCELLED)) {
+			throw new IllegalOrderTransitionException(status, OrderStatus.CANCELLED);
 		}
 		BigDecimal held = reservedAmount;
-		this.status = OrderStatus.CANCELADO;
+		this.status = OrderStatus.CANCELLED;
 		this.reservedAmount = BigDecimal.ZERO.setScale(SCALE, RoundingMode.HALF_UP);
 		this.updatedAt = Instant.now();
 		return held;

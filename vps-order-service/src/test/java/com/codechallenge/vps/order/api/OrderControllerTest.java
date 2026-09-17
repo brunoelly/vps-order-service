@@ -59,7 +59,7 @@ class OrderControllerTest {
 				.content("{\"partnerId\":\"" + partnerId + "\",\"items\":[{\"sku\":\"SKU-1\",\"productName\":\"Widget\",\"quantity\":2,\"unitPrice\":10.00}]}"))
 				.andExpect(status().isCreated())
 				.andExpect(header().string("Location", "http://localhost/api/v1/orders/" + order.getId()))
-				.andExpect(jsonPath("$.status").value("PENDENTE"))
+				.andExpect(jsonPath("$.status").value("PENDING"))
 				.andExpect(jsonPath("$.total").value(20.00))
 				.andExpect(jsonPath("$.items[0].sku").value("SKU-1"))
 				.andExpect(jsonPath("$.items[0].lineTotal").value(20.00));
@@ -135,19 +135,19 @@ class OrderControllerTest {
 	void searchCapsPageSize() throws Exception {
 		UUID partnerId = UUID.randomUUID();
 		Order order = Order.create(partnerId, "k1", List.of(new OrderItem("SKU-1", "Widget", 1, new BigDecimal("1.00"))));
-		when(orders.search(eq(partnerId), eq(OrderStatus.PENDENTE), any(), any(), any(Pageable.class)))
+		when(orders.search(eq(partnerId), eq(OrderStatus.PENDING), any(), any(), any(Pageable.class)))
 				.thenReturn(new PageImpl<>(List.of(order)));
 
 		mvc.perform(get("/api/v1/orders")
 				.param("partnerId", partnerId.toString())
-				.param("status", "PENDENTE")
+				.param("status", "PENDING")
 				.param("page", "2")
 				.param("size", "500"))
 				.andExpect(status().isOk())
 				.andExpect(jsonPath("$.content[0].id").value(order.getId().toString()));
 
 		ArgumentCaptor<Pageable> captor = ArgumentCaptor.forClass(Pageable.class);
-		verify(orders).search(eq(partnerId), eq(OrderStatus.PENDENTE), any(), any(), captor.capture());
+		verify(orders).search(eq(partnerId), eq(OrderStatus.PENDING), any(), any(), captor.capture());
 		assertEquals(2, captor.getValue().getPageNumber());
 		assertEquals(100, captor.getValue().getPageSize());
 	}
@@ -162,14 +162,14 @@ class OrderControllerTest {
 	@Test
 	void changeStatus() throws Exception {
 		Order order = Order.create(UUID.randomUUID(), "k1", List.of(new OrderItem("SKU-1", "Widget", 1, new BigDecimal("1.00"))));
-		order.transitionTo(OrderStatus.APROVADO);
-		when(orders.changeStatus(order.getId(), OrderStatus.APROVADO)).thenReturn(order);
+		order.transitionTo(OrderStatus.APPROVED);
+		when(orders.changeStatus(order.getId(), OrderStatus.APPROVED)).thenReturn(order);
 
 		mvc.perform(patch("/api/v1/orders/{id}/status", order.getId())
 				.contentType(MediaType.APPLICATION_JSON)
-				.content("{\"status\":\"APROVADO\"}"))
+				.content("{\"status\":\"APPROVED\"}"))
 				.andExpect(status().isOk())
-				.andExpect(jsonPath("$.status").value("APROVADO"));
+				.andExpect(jsonPath("$.status").value("APPROVED"));
 	}
 
 	@Test
@@ -188,7 +188,7 @@ class OrderControllerTest {
 
 		mvc.perform(post("/api/v1/orders/{id}/cancel", order.getId()))
 				.andExpect(status().isOk())
-				.andExpect(jsonPath("$.status").value("CANCELADO"));
+				.andExpect(jsonPath("$.status").value("CANCELLED"));
 	}
 
 	@Test
@@ -235,14 +235,14 @@ class OrderControllerTest {
 	@Test
 	void illegalTransitionReturns409() throws Exception {
 		UUID id = UUID.randomUUID();
-		when(orders.changeStatus(id, OrderStatus.ENVIADO))
-				.thenThrow(new IllegalOrderTransitionException(OrderStatus.PENDENTE, OrderStatus.ENVIADO));
+		when(orders.changeStatus(id, OrderStatus.SHIPPED))
+				.thenThrow(new IllegalOrderTransitionException(OrderStatus.PENDING, OrderStatus.SHIPPED));
 
 		mvc.perform(patch("/api/v1/orders/{id}/status", id)
 				.contentType(MediaType.APPLICATION_JSON)
-				.content("{\"status\":\"ENVIADO\"}"))
+				.content("{\"status\":\"SHIPPED\"}"))
 				.andExpect(status().isConflict())
-				.andExpect(jsonPath("$.detail").value("Cannot change order from PENDENTE to ENVIADO"));
+				.andExpect(jsonPath("$.detail").value("Cannot change order from PENDING to SHIPPED"));
 	}
 
 	@Test
