@@ -37,7 +37,9 @@ cd vps-order-service
 ./mvnw test
 ```
 
-Domain tests always run (`OrderStatus` matrix, totals, credit reserve/release, services). `./mvnw verify` also fails the build if JaCoCo line coverage on `order`/`partner` `domain` + `application` is under 80%. `OrderPersistenceTest` needs Docker (Testcontainers) and is skipped if the daemon is not on the PATH (typical from Git Bash on this machine). From Ubuntu WSL with Docker, it runs.
+Domain tests always run (`OrderStatus` matrix, totals, credit reserve/release, services). `./mvnw verify` also fails the build if JaCoCo line coverage on `order`/`partner` `domain` + `application` is under 80%.
+
+`OrderPersistenceTest` and `OrderApiIntegrationTest` need Docker (Testcontainers) and are skipped if the daemon is not on the PATH (typical from Git Bash on this machine). From Ubuntu WSL with Docker **and** a JDK, they run: REST create/get/search/status/cancel, 400/404/409/422, idempotency, and 20 concurrent creates against a credit limit that only fits 5 orders.
 
 ## Domain
 
