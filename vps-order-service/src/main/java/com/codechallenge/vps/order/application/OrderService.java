@@ -1,9 +1,13 @@
 package com.codechallenge.vps.order.application;
 
 import java.math.BigDecimal;
+import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -15,6 +19,7 @@ import com.codechallenge.vps.order.domain.OrderNotFoundException;
 import com.codechallenge.vps.order.domain.OrderStatus;
 import com.codechallenge.vps.order.domain.OrderStatusChangedEvent;
 import com.codechallenge.vps.order.infra.OrderRepository;
+import com.codechallenge.vps.order.infra.OrderSpecs;
 import com.codechallenge.vps.outbox.OutboxWriter;
 import com.codechallenge.vps.partner.domain.Partner;
 import com.codechallenge.vps.partner.domain.PartnerNotFoundException;
@@ -54,6 +59,25 @@ public class OrderService {
 		outbox.append("Order", saved.getId(), "OrderCreated",
 				new OrderCreatedEvent(saved.getId(), saved.getPartnerId(), saved.getCreatedAt()));
 		return saved;
+	}
+
+	@Transactional(readOnly = true)
+	public Order get(UUID orderId) {
+		return orders.findById(orderId).orElseThrow(() -> new OrderNotFoundException(orderId));
+	}
+
+	@Transactional(readOnly = true)
+	public Page<Order> search(
+			UUID partnerId,
+			OrderStatus status,
+			Instant createdFrom,
+			Instant createdTo,
+			Pageable pageable) {
+		Specification<Order> spec = OrderSpecs.partnerId(partnerId)
+				.and(OrderSpecs.status(status))
+				.and(OrderSpecs.createdFrom(createdFrom))
+				.and(OrderSpecs.createdTo(createdTo));
+		return orders.findAll(spec, pageable);
 	}
 
 	@Transactional

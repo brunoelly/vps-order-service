@@ -52,7 +52,11 @@ ENVIADO          -> ENTREGUE
 
 `ENTREGUE` and `CANCELADO` are final. Creating an order checks partner credit and holds the total until approval (already reserved) or cancel (released).
 
-`OrderService.place` locks the partner row (`SELECT … FOR UPDATE`), reserves credit, then inserts the order in one transaction. A repeated `Idempotency-Key` with the same lines returns the original order; a different payload is rejected. `changeStatus` only allows legal moves (approve does not debit again). Cancel releases the hold. There is no HTTP for this yet.
+`OrderService.place` locks the partner row (`SELECT … FOR UPDATE`), reserves credit, then inserts the order in one transaction. A repeated `Idempotency-Key` with the same lines returns the original order; a different payload is rejected. `changeStatus` only allows legal moves (approve does not debit again). Cancel releases the hold.
+
+HTTP is under `/api/v1`. Partners: create, get, patch credit limit. Orders: create (`Idempotency-Key` required), get, search (`partnerId`, `status`, `createdFrom`, `createdTo`, `page`, `size`; default `page=0`, `size=20`, max `100`), patch status, cancel. Responses are DTOs, not JPA entities.
+
+Errors are `application/problem+json`: 404 not found, 409 illegal status or idempotency conflict, 422 validation or insufficient credit, 400 malformed JSON / bad query / missing header. Bodies include `timestamp` and `traceId` (`X-Request-Id` if the client sent one).
 
 Create, status change, and cancel write a row to `outbox` in the same transaction. A poller publishes those rows through Spring’s `ApplicationEventPublisher` and a log listener; there is no Kafka or Rabbit. An identical `Idempotency-Key` replay does not write a second event.
 

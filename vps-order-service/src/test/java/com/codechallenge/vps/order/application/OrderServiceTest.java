@@ -12,6 +12,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.math.BigDecimal;
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -21,6 +22,11 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 
 import com.codechallenge.vps.order.domain.IdempotencyConflictException;
 import com.codechallenge.vps.order.domain.IllegalOrderTransitionException;
@@ -251,6 +257,34 @@ class OrderServiceTest {
 		assertThrows(IllegalOrderTransitionException.class,
 				() -> service.changeStatus(order.getId(), OrderStatus.APROVADO));
 		verify(outbox, never()).append(any(), any(), any(), any());
+	}
+
+	@Test
+	void getReturnsExistingOrder() {
+		Order order = Order.create(UUID.randomUUID(), "k1", lines("1.00", 1));
+		when(orders.findById(order.getId())).thenReturn(Optional.of(order));
+
+		assertSame(order, service.get(order.getId()));
+	}
+
+	@Test
+	void getUnknownOrder() {
+		UUID id = UUID.randomUUID();
+		when(orders.findById(id)).thenReturn(Optional.empty());
+
+		assertThrows(OrderNotFoundException.class, () -> service.get(id));
+	}
+
+	@Test
+	void searchDelegatesToRepository() {
+		Order order = Order.create(UUID.randomUUID(), "k1", lines("1.00", 1));
+		Pageable page = PageRequest.of(0, 20);
+		when(orders.findAll(any(Specification.class), eq(page))).thenReturn(new PageImpl<>(List.of(order)));
+
+		Page<Order> result = service.search(order.getPartnerId(), OrderStatus.PENDENTE, Instant.EPOCH, Instant.now(), page);
+
+		assertEquals(1, result.getTotalElements());
+		assertSame(order, result.getContent().get(0));
 	}
 
 	private static List<OrderItem> lines(String price, int qty) {
