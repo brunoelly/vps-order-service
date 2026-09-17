@@ -8,7 +8,7 @@
 		<version>4.1.1</version>
 		<relativePath/>
 	</parent>
-	<groupId>com.codechallenge</groupId>
+	<groupId>com.codechallenge.vps</groupId>
 	<artifactId>vps-order-service</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
 	<name>vps-order-service</name>
