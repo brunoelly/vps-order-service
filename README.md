@@ -5,8 +5,8 @@ Orders move through a fixed status list. There is no UI and no login.
 
 ## Prerequisites
 
-- **Docker** (Engine is enough) — this is the intended way to run it
-- **JDK 17** and the Maven wrapper — only if you run the jar on the host
+- Docker
+- JDK 17 + the Maven wrapper, only if you run the jar on the host
 
 ## Run with Docker
 
@@ -32,10 +32,9 @@ docker compose up --build
 | Health | http://localhost:8081/actuator/health |
 | Swagger UI | http://localhost:8081/swagger-ui.html (redirects to `/swagger-ui/index.html`) |
 | OpenAPI | http://localhost:8081/v3/api-docs |
-| Postgres (host) | `localhost:5433` — user/password/db `orders` |
+| Postgres (host) | `localhost:5433` (user/password/db `orders`) |
 
-The app reaches Postgres as `postgres:5433` on the Compose network.
-Wait until health returns `{"status":"UP"}` before calling the API.
+The app talks to Postgres as `postgres:5432` on the Compose network. Host **5433** is only for `psql` from your machine. Wait until health is `{"status":"UP"}` before calling the API.
 
 ## Run on the host
 
@@ -55,7 +54,7 @@ SPRING_DATASOURCE_PASSWORD=orders \
 ./mvnw spring-boot:run
 ```
 
-The process then listens on **8080**. Point the curls below at that port, or pass `--server.port=8081`. Compose sets `prod` (`postgres` as the DB host). `test` / `it` are for Surefire only.
+`./mvnw spring-boot:run` listens on **8080**. The curls below use **8081** (Compose). Change the port in the curls, or start with `--server.port=8081`.
 
 ## Status
 
@@ -191,7 +190,7 @@ curl -sS -X POST http://localhost:8081/api/v1/orders \
   -d '{"partnerId":"'"$PARTNER_ID"'","items":[{"sku":"SKU-1","productName":"Widget","quantity":9,"unitPrice":10.00}]}'
 ```
 
-Twenty concurrent creates against one partner are in `OrderApiIntegrationTest`, not in these curls.
+Concurrency against one partner is covered in `OrderApiIntegrationTest`.
 
 ## Tests
 
@@ -203,7 +202,7 @@ cd vps-order-service
 
 `./mvnw verify` fails if JaCoCo line coverage on `order`/`partner` `domain` + `application` is under 80%.
 
-`OrderPersistenceTest` and `OrderApiIntegrationTest` need Docker (Testcontainers) and are skipped if the daemon is not on the PATH (typical from Git Bash here). From Ubuntu with Docker and a JDK they run the HTTP flow, 400/404/409/422, idempotency, and 20 concurrent creates against a credit limit that only fits 5 orders.
+`OrderPersistenceTest` and `OrderApiIntegrationTest` need Docker (Testcontainers). They are skipped if the daemon is not on the PATH. With Docker they cover the HTTP flow, 400/404/409/422, idempotency, and concurrent creates that must not overdraw credit.
 
 ## Credit and concurrency
 
@@ -213,7 +212,7 @@ Schema is Flyway (`partners`, `orders`, `order_items`, `outbox`). Hibernate only
 
 | | |
 |---|---|
-| Database | PostgreSQL 16 — locks and `CHECK (available_credit >= 0)` |
+| Database | PostgreSQL 16 (row locks, `available_credit >= 0`) |
 | Money | `BigDecimal` / `NUMERIC(19,2)` |
 | Time | UTC `Instant` |
 | IDs | UUID |

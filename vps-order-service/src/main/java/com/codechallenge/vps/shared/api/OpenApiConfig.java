@@ -20,7 +20,7 @@ public class OpenApiConfig {
 						.version("0.0.1")
 						.description("B2B order management"))
 				.tags(List.of(
-						new Tag().name("Partners").description("Partner accounts and credit limit"),
-						new Tag().name("Orders").description("Place, search, status, and cancel")));
+						new Tag().name("Partners"),
+						new Tag().name("Orders")));
 	}
 }
