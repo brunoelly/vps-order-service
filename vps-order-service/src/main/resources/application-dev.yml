@@ -1,0 +1,8 @@
+spring:
+  datasource:
+    # Compose publishes Postgres on 5433; override SPRING_DATASOURCE_URL if you use that.
+    url: jdbc:postgresql://localhost:5432/orders
+    username: orders
+    password: orders
+    hikari:
+      leak-detection-threshold: 60000

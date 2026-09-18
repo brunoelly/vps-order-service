@@ -1,0 +1,7 @@
+spring:
+  flyway:
+    enabled: true
+
+outbox:
+  poll:
+    enabled: false
