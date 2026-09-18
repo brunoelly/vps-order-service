@@ -34,7 +34,7 @@ docker compose up --build
 | OpenAPI | http://localhost:8081/v3/api-docs |
 | Postgres (host) | `localhost:5433` (user/password/db `orders`) |
 
-The app talks to Postgres as `postgres:5432` on the Compose network. Host **5433** is only for `psql` from your machine. Wait until health is `{"status":"UP"}` before calling the API.
+The app talks to Postgres as `postgres:5433` on the Compose network. Wait until health is `{"status":"UP"}` before calling the API.
 
 ## Run on the host
 
